@@ -111,8 +111,8 @@ def getImageArr( img_in , width , height , imgNorm="sub_mean" , odering='channel
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--save_weights_path", type = str, default = "weights/tinydarknet7_shortcuts_rgbd"  )
-parser.add_argument("--epoch_number", type = int, default = 12 )
+parser.add_argument("--save_weights_path", type = str, default = "weights/tinyyolonet7_area1"  )
+parser.add_argument("--epoch_number", type = int, default = 21 )
 parser.add_argument("--test_images", type = str , default = "")
 parser.add_argument("--test_depth", type = str , default = "")
 parser.add_argument("--output_path", type = str , default = "")
@@ -120,7 +120,7 @@ parser.add_argument("--input_height", type=int , default = 224  )
 parser.add_argument("--input_width", type=int , default = 320 )
 parser.add_argument("--model_name", type = str , default = "tinyyolonet7")
 parser.add_argument("--optimizer_name", type = str , default = "adadelta")
-parser.add_argument("--n_classes", type=int, default = 7 )
+parser.add_argument("--n_classes", type=int, default = 14 )
 
 args = parser.parse_args()
 

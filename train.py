@@ -128,11 +128,11 @@ if validate:
 	val_batch_size = args.val_batch_size
         val_depth_path = args.val_depth
 
-modelFns = { 'vgg_segnet':Models.VGGSegnet.VGGSegnet , 'vgg_unet':Models.VGGUnet.VGGUnet , 'vgg_unet2':Models.VGGUnet.VGGUnet2 , 'fcn8':Models.FCN8.FCN8 , 'fcn32':Models.FCN32.FCN32 , 'vgg_segnet_own':Models.VGGSegnetOwn.VGGSegnetOwn , 'unet':Models.Unet.Unet , 'yolonet':Models.YOLONet.YOLONet , 'tinyyolonet':Models.YOLONet.TinyYOLONet , 'tinyyolonet2':Models.YOLONet.TinyYOLONet2 ,'tinyyolonet3':Models.YOLONet.TinyYOLONet3, 'tinyyolonet4':Models.YOLONet.TinyYOLONet4,  'tinyyolonet5':Models.YOLONet.TinyYOLONet5 , 'tinyyolonet6':Models.YOLONet.TinyYOLONet6  , 'tinyyolonet7':Models.YOLONet.TinyYOLONet7 ,  'squeezenet':Models.Squeezenet.Squeezenet, 'squeezenet2':Models.Squeezenet.Squeezenet2,  'squeezenet3':Models.Squeezenet.Squeezenet3}
+modelFns = { 'vgg_segnet':Models.VGGSegnet.VGGSegnet , 'vgg_unet':Models.VGGUnet.VGGUnet , 'vgg_unet2':Models.VGGUnet.VGGUnet2 , 'fcn8':Models.FCN8.FCN8 , 'fcn32':Models.FCN32.FCN32 , 'vgg_segnet_own':Models.VGGSegnetOwn.VGGSegnetOwn , 'unet':Models.Unet.Unet , 'yolonet':Models.YOLONet.YOLONet , 'tinyyolonet':Models.YOLONet.TinyYOLONet , 'tinyyolonet2':Models.YOLONet.TinyYOLONet2 ,'tinyyolonet3':Models.YOLONet.TinyYOLONet3, 'tinyyolonet4':Models.YOLONet.TinyYOLONet4,  'tinyyolonet5':Models.YOLONet.TinyYOLONet5 , 'tinyyolonet6':Models.YOLONet.TinyYOLONet6  , 'tinyyolonet7':Models.YOLONet.TinyYOLONet7 , 'tinyyolonet8':Models.YOLONet.TinyYOLONet8 , 'darknet19':Models.YOLONet.DarkNet19 , 'squeezenet':Models.Squeezenet.Squeezenet, 'squeezenet2':Models.Squeezenet.Squeezenet2,  'squeezenet3':Models.Squeezenet.Squeezenet3}
 modelFN = modelFns[ model_name ]
 
 m = modelFN( n_classes , input_height=input_height, input_width=input_width   )
-optim = tf.keras.optimizers.SGD(0.001, 0.9, 0.005);
+#optim = tf.keras.optimizers.SGD(0.001, 0.9, 0.005);
 optim = tf.keras.optimizers.Adam();
 m.compile(loss='categorical_crossentropy',
       optimizer= optimizer_name ,
@@ -182,12 +182,24 @@ if not validate:
 		m.fit_generator( G , 512  , epochs=1 )
 		m.save_weights( save_weights_path + "." + str( ep ) )
 		m.save( save_weights_path + ".model." + str( ep ) )
+if model_name == 'tinyyolonet8':
+    for ep in range ( epochs):
+            G  = LoadBatches.imageSegmentationGenerator( train_images_path , train_segs_path ,  train_batch_size,  n_classes , input_height , input_width , output_height , output_width   )
+            G3  = LoadBatches.imageSegmentationGenerator( val_images_path,  val_segs_path ,  val_batch_size,  n_classes , input_height , input_width , output_height , output_width   )
+            print("****************\n*** Epoch: "+str(ep)+"/"+str(epochs-1)+"\n****************")
+            history = m.fit_generator( G , 8192  , validation_data=G3, class_weight=class_weights, validation_steps=2582 ,  epochs=1)
+            if (ep%1)==0:
+                m.save_weights( save_weights_path + "." + str( ep )  )
+    m.save_weights( save_weights_path + "." + str( epochs )  )
+
 else:
 	for ep in range( epochs ):
             G22  = LoadBatches.imageSegmentationGenerator2( train_images_path , train_depth_path, train_segs_path ,  train_batch_size,  n_classes , input_height , input_width , output_height , output_width   )
             G2  = LoadBatches.imageSegmentationGenerator2( val_images_path ,val_depth_path,  val_segs_path ,  val_batch_size,  n_classes , input_height , input_width , output_height , output_width   )
             print("****************\n*** Epoch: "+str(ep)+"/"+str(epochs-1)+"\n****************")
-            history = m.fit_generator( G22 , 2582  , validation_data=G2, class_weight=class_weights, validation_steps=2582 ,  epochs=1)
+            history = m.fit_generator( G22 , 4096  , validation_data=G2, class_weight=class_weights, validation_steps=2582 ,  epochs=1)
+            if (ep%1)==0:
+                m.save_weights( save_weights_path + "." + str( ep )  )
 	m.save_weights( save_weights_path + "." + str( epochs )  )
 	m.save( save_weights_path + "." + str( epochs ) )
         #26451

@@ -75,7 +75,12 @@ def main():
     if not cam.is_opened():
         print("Opening ZED Camera...")
     init = sl.InitParameters(svo_input_filename=filepath)
-#    init = sl.InitParameters()
+    #    init = sl.InitParameters()
+    init.depth_mode = sl.DEPTH_MODE.DEPTH_MODE_ULTRA # Set the depth mode to ULTRA
+    init.coordinate_units = UNIT_METER;
+    init_parameters.depth_minimum_distance = 0.15
+    init_parameters.depth_maximum_distance = 40
+
     status = cam.open(init)
     if status != sl.ERROR_CODE.SUCCESS:
         print(repr(status))
@@ -150,9 +155,9 @@ def main():
             
             X = getImageArr(frame[:,:,:3] , args.input_width  , args.input_height, odering='channels_last'  )
             Y = getImageArr(cv_depth[:,:,:3] , args.input_width  , args.input_height, imgNorm='depth', odering='channels_last'  )
-            start_time_inference=time.time()
+            mark1=time.time()
             pr = m.predict( [np.array([X]), np.array([Y])] )[0]
-            inference_time = time.time() - start_time
+            mark2 = time.time()
             pr = pr.reshape(( output_height ,  output_width , n_classes ) ).argmax( axis=2 )
             seg_img = np.zeros( ( output_height , output_width , 3  ) )
             for c in range(n_classes):
@@ -166,6 +171,8 @@ def main():
 
             res[x_offset:both.shape[0]+x_offset,y_offset:both.shape[1]+y_offset,0:3] = both
             res[20:60,5:300,:]=0
+            total_time = time.time() - start_time
+            inference_time = mark2-mark1
             cv2.putText(res, 'Framerate = '+str(np.round(1/(time.time() - start_time),1))+' fps',(10,32), font, 0.5,(255,255,255),1,cv2.LINE_AA) 
             cv2.putText(res, 'Inference time = ' + str(round(inference_time*1000,2))+' ms',(10,48), font, 0.5,(255,255,255),1,cv2.LINE_AA) 
             cv2.imshow('frame',res)
@@ -305,6 +312,8 @@ def getImageArr( img_in , width , height , imgNorm="sub_mean" , odering='channel
             if odering == 'channels_first':
                 img_depth = np.rollaxis(img_depth, 2, 0)
             return img_depth
+        elif imgNorm == "zed":
+            img_depth = img
             
 
         if odering == 'channels_first':

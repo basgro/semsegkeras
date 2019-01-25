@@ -274,12 +274,12 @@ def Darknet19Encoder(  input_img , input_name, depth, resnet):
     x = MaxPooling2D(2, strides=(2, 2), data_format='channels_last' )(x)
     f4 = x
     
-#    x = Conv2D(1024,  (3, 3), activation='relu', padding='same', data_format='channels_last' )(x)
-#    x = Conv2D(512,  (1, 1), activation='relu', padding='same', data_format='channels_last' )(x)
-#    x = Conv2D(1024,  (3, 3), activation='relu', padding='same', data_format='channels_last' )(x)
-#    x = Conv2D(512,  (1, 1), activation='relu', padding='same', data_format='channels_last' )(x)
-#    x = Conv2D(1024,  (3, 3), activation='relu', padding='same', data_format='channels_last' )(x)
-#    x = MaxPooling2D(2, strides=(2, 2), data_format='channels_last' )(x)
+    x = Conv2D(1024,  (3, 3), activation='relu', padding='same', data_format='channels_last' )(x)
+    x = Conv2D(512,  (1, 1), activation='relu', padding='same', data_format='channels_last' )(x)
+    x = Conv2D(1024,  (3, 3), activation='relu', padding='same', data_format='channels_last' )(x)
+    x = Conv2D(512,  (1, 1), activation='relu', padding='same', data_format='channels_last' )(x)
+    x = Conv2D(1024,  (3, 3), activation='relu', padding='same', data_format='channels_last' )(x)
+
     f5 = x
     
     f = (f1, f2, f3, f4, f5)
@@ -494,7 +494,7 @@ def Darknet19Decoder(  oin , n_classes, depth, resnet, unet, f):
     o = Conv2D(512,(1,1), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(1024,(3,3), activation='relu',padding='same', data_format='channels_last')(o)  
     if depth==4:
-        o = oin
+        o = f[3]
     o = ( UpSampling2D( (2,2), data_format='channels_last'))(o)
     o = Conv2D(512,(3,3), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(256,(1,1), activation='relu',padding='same', data_format='channels_last')(o)
@@ -502,20 +502,20 @@ def Darknet19Decoder(  oin , n_classes, depth, resnet, unet, f):
     o = Conv2D(256,(1,1), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(512,(3,3), activation='relu',padding='same', data_format='channels_last')(o)  
     if depth==3:
-        o = oin
+        o = f[2]
     o = ( UpSampling2D( (2,2), data_format='channels_last'))(o)
     o = Conv2D(256,(3,3), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(128,(1,1), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(256,(3,3), activation='relu',padding='same', data_format='channels_last')(o)  
     if depth==2:
-        o = oin
+        o = f[1]
     o = ( UpSampling2D( (2,2), data_format='channels_last'))(o)
     o = Conv2D(128,(3,3), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(64,(1,1), activation='relu',padding='same', data_format='channels_last')(o)
     o = Conv2D(128,(3,3), activation='relu',padding='same', data_format='channels_last')(o)  
     
     if depth==1:
-        o = oin
+        o = f[0]
     o = ( UpSampling2D( (2,2), data_format='channels_last'))(o)
     o = Conv2D(64,(3,3), activation='relu',padding='same', data_format='channels_last')(o)  
     
@@ -849,6 +849,63 @@ def TinyYOLONet7( n_classes ,  input_height=416, input_width=608 , vgg_level=3):
     od = xd    
     o = ( Add()([ o ,od] ))
     o = TinyDarknetDecoderLast(o,n_classes, depth, True, False, f)    
+    o = ( BatchNormalization())(o)
+    o = ( Conv2D( n_classes , (1, 1), padding='valid'  , data_format='channels_last' ))(o)
+            
+    o_shape = Model(inputs=[img_input, depth_input] , outputs = o ).output_shape
+    outputHeight = o_shape[1]
+    outputWidth = o_shape[2]
+
+    o = (Reshape(( outputHeight*outputWidth ,  n_classes    )))(o)
+    o = (Activation('softmax'))(o)
+    model = Model( inputs=[img_input, depth_input] , outputs = o )
+ #   model = Model( inputs=img_input , outputs = o )
+    model.outputWidth = outputWidth
+    model.outputHeight = outputHeight
+#    plot_model(model, to_file='tiny_yolonet7.png')
+
+    return model
+
+def TinyYOLONet8( n_classes ,  input_height=416, input_width=608 , vgg_level=3):
+    depth = 5
+    img_input = Input(shape=(input_height,input_width,3))
+    depth_input = Input(shape=(input_height,input_width,1))
+    
+    (x, f) = TinyDarknetEncoderLastV2(img_input, 'image_input', depth, True)
+
+    o = x
+    o = TinyDarknetDecoderLast(o,n_classes, depth, True, False, f)    
+    o = ( BatchNormalization())(o)
+    o = ( Conv2D( n_classes , (1, 1), padding='valid'  , data_format='channels_last' ))(o)
+            
+    o_shape = Model(inputs=img_input , outputs = o ).output_shape
+    outputHeight = o_shape[1]
+    outputWidth = o_shape[2]
+
+    o = (Reshape(( outputHeight*outputWidth ,  n_classes    )))(o)
+    o = (Activation('softmax'))(o)
+    model = Model( inputs=img_input , outputs = o )
+ #   model = Model( inputs=img_input , outputs = o )
+    model.outputWidth = outputWidth
+    model.outputHeight = outputHeight
+#    plot_model(model, to_file='tiny_yolonet7.png')
+
+    return model
+
+def DarkNet19( n_classes ,  input_height=416, input_width=608 , vgg_level=3):
+    depth = 4
+    img_input = Input(shape=(input_height,input_width,3))
+    depth_input = Input(shape=(input_height,input_width,1))
+    
+    (x, f) = Darknet19Encoder(img_input, 'image_input', depth, True)
+    (xd, fd) = Darknet19Encoder(depth_input, 'depth_input', depth, True)
+    o = x
+    od = xd
+    
+    g = (( Add()([ f[0], fd[0]])), ( Add()([ f[1], fd[1]])), ( Add()([ f[2], fd[2]])), ( Add()([ f[3], fd[3]])), ( Add()([ f[4], fd[4]])))
+    
+    p = ( Add()([ o ,od] ))
+    o = Darknet19Decoder(p,n_classes, depth, True, False, g)    
     o = ( BatchNormalization())(o)
     o = ( Conv2D( n_classes , (1, 1), padding='valid'  , data_format='channels_last' ))(o)
             
